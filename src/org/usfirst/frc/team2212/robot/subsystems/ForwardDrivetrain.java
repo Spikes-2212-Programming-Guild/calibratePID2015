@@ -1,11 +1,9 @@
 package org.usfirst.frc.team2212.robot.subsystems;
 
-import static org.usfirst.frc.team2212.robot.Robot.random;
-
-import com.ni.vision.NIVision.GetPointsOnContourResult;
-
-import edu.wpi.first.wpilibj.Encoder;
-import edu.wpi.first.wpilibj.VictorSP;
+import static org.usfirst.frc.team2212.robot.Robot.eLeft;
+import static org.usfirst.frc.team2212.robot.Robot.eRight;
+import static org.usfirst.frc.team2212.robot.Robot.left;
+import static org.usfirst.frc.team2212.robot.Robot.right;
 import edu.wpi.first.wpilibj.command.PIDSubsystem;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -13,53 +11,59 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
  *
  */
 public class ForwardDrivetrain extends PIDSubsystem {
-	
+
+	public static final double RANGE = 0.5;
+
+	private double maximum;
+
 	public ForwardDrivetrain(double p, double i, double d) {
 		super(p, i, d);
+		getPIDController().setOutputRange(-RANGE, RANGE);
 		// TODO Auto-generated constructor stub
 	}
 
-	Encoder eLeft = new Encoder(2, random()), eRight = new Encoder(4, 5);
-	
-	Gearbox left = new Gearbox(0,1), right = new Gearbox(8,9);
-	
-    public void initDefaultCommand() {
-    	
-        // Set the default command for a subsystem here.
-        //setDefaultCommand(new MySpecialCommand());
-    	
-    }
-    
-    protected double returnPIDInput() {
-        return (eLeft.getDistance()+eRight.getDistance())/2;
-    }
-    
-    protected void usePIDOutput(double output) {
-        left.set(output);
-        right.set(output);
-    }
+	@Override
+	public void initDefaultCommand() {
+
+		// Set the default command for a subsystem here.
+		// setDefaultCommand(new MySpecialCommand());
+
+	}
+
+	@Override
+	protected double returnPIDInput() {
+		double pid = (-eLeft.getDistance() + eRight.getDistance()) / 2;
+		SmartDashboard.putNumber("In", pid);
+		return pid;
+	}
+
+	@Override
+	public void usePIDOutput(double output) {
+		SmartDashboard.putNumber("Out", output / maximum);
+		maximum = Math.max(Math.abs(output), maximum);
+		SmartDashboard.putNumber("maximum", maximum);
+		SmartDashboard.putNumber("Out", output / maximum);
+		left.set(RANGE * output / maximum);
+		right.set(-RANGE * output / maximum);
+	}
 
 	public void updatePID() {
-		getPIDController().setPID(SmartDashboard.getNumber("kp"), SmartDashboard.getNumber("ki"), SmartDashboard.getNumber("kd"));
-		
+		maximum = 0;
+		getPIDController().setPID(SmartDashboard.getNumber("kp"),
+				SmartDashboard.getNumber("ki"), SmartDashboard.getNumber("kd"));
+		getPIDController().setAbsoluteTolerance(
+				SmartDashboard.getNumber("tolerance", 0.1));
+
 	}
-}
 
-
-
-class Gearbox {
-	
-	VictorSP front, rear;
-
-	public Gearbox(int cF, int cR) {
-		front = new VictorSP(cF);
-		rear = new VictorSP(cR);
+	public void reset() {
+		eLeft.reset();
+		eRight.reset();
 	}
-	
-	public void set(double speed) {
-		front.set(speed);
-		rear.set(speed);
+
+	public void putData() {
+
+		SmartDashboard.putNumber("eLeft", -eLeft.getDistance());
+		SmartDashboard.putNumber("eRight", eRight.getDistance());
 	}
-	
-	
 }
